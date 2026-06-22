@@ -1,0 +1,145 @@
+services:
+  # --- THE DEBRID INTERMEDIARY (MOUNT ENGINE) ---
+  # Owns the FUSE cloud mount and mocks qBittorrent (+ SABnzbd) for the *arrs.
+  # ./mount is the dedicated propagation channel: rshared here, rslave everywhere else.
+  decypharr:
+    image: ghcr.io/sirrobot01/decypharr:latest
+    container_name: decypharr
+    ports:
+      - "8282:8282"
+    volumes:
+      - ./config/decypharr:/app
+      - ./data:/data
+      - ./mount:/mnt/remote:rshared
+    devices:
+      - /dev/fuse:/dev/fuse:rwm
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    restart: unless-stopped
+
+  # --- INDEXER HUB ---
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    ports:
+      - "9696:9696"
+    volumes:
+      - ./config/prowlarr:/config
+    environment:
+      - PUID=1000
+      - PGID=1000
+    restart: unless-stopped
+
+  # --- CLOUDFLARE BYPASS (for indexers behind Cloudflare, e.g. Nyaa) ---
+  byparr:
+    image: ghcr.io/thephaseless/byparr:latest
+    container_name: byparr
+    ports:
+      - "8191:8191"
+    environment:
+      - LOG_LEVEL=info
+      - TZ=America/New_York
+    restart: unless-stopped
+
+  # --- MOVIE AUTOMATION ENGINE ---
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    ports:
+      - "7878:7878"
+    volumes:
+      - ./config/radarr:/config
+      - ./data:/data
+      - ./mount:/mnt/remote:rslave
+    environment:
+      - PUID=1000
+      - PGID=1000
+    restart: unless-stopped
+
+  # --- TV & ANIME AUTOMATION ENGINE ---
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    ports:
+      - "8989:8989"
+    volumes:
+      - ./config/sonarr:/config
+      - ./data:/data
+      - ./mount:/mnt/remote:rslave
+    environment:
+      - PUID=1000
+      - PGID=1000
+    restart: unless-stopped
+
+  # --- THE MEDIA SERVER ---
+  # Needs full /data (to read the symlink library) AND the cloud mount (to follow
+  # those symlinks into TorBox). Without /mnt/remote here, every library item is dead.
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    container_name: jellyfin
+    ports:
+      - "8096:8096"
+    volumes:
+      - ./config/jellyfin:/config
+      - ./data:/data
+      - ./mount:/mnt/remote:rslave
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  # --- THE REQUEST PORTAL ---
+  jellyseerr:
+    image: fallenbagel/jellyseerr:latest
+    container_name: jellyseerr
+    ports:
+      - "5055:5055"
+    volumes:
+      - ./config/jellyseerr:/app/config
+    restart: unless-stopped
+
+  # --- QUALITY PROFILE / CUSTOM FORMAT SYNC (TRaSH Guides) ---
+  # Pushes curated custom formats + scores into Radarr/Sonarr on a schedule.
+  # Protocol-agnostic: the same rules apply to torrent (Nyaa) and usenet (NZBGeek) grabs.
+  recyclarr:
+    image: ghcr.io/recyclarr/recyclarr:8
+    container_name: recyclarr
+    user: "1000:1000"
+    init: true
+    volumes:
+      - ./config/recyclarr:/config
+    environment:
+      - TZ=America/New_York
+      - CRON_SCHEDULE=@daily
+    restart: unless-stopped
+
+  # --- ONE PACE KEEPER ---
+  # One Pace isn't an *arr-managed series (no TVDB/AniList entry), so it can't self-heal
+  # via decypharr's *arr repair. TorBox Standard has no long-term storage, so torrents get
+  # purged when idle. Every 6h this re-adds any purged One Pace torrents (cached = instant)
+  # and refreshes the library symlinks so the Anime library never rots.
+  onepace-maintenance:
+    image: python:3.12-slim
+    container_name: onepace-maintenance
+    user: "1000:1000"
+    volumes:
+      - ./data:/data
+      - ./mount:/mnt/remote:rslave
+      - ./onepace:/work:ro
+    environment:
+      - TORBOX_KEY=${TORBOX_KEY:?set TORBOX_KEY in .env}
+      - OP_MANIFEST=/work/onepace_final.json
+      - OP_MOUNT=/mnt/remote
+      - OP_CONT_MOUNT=/mnt/remote
+      - OP_LIB=/data/media/anime/One Pace
+    command: sh -c "while true; do sh /work/op_maint.sh; sleep 21600; done"
+    restart: unless-stopped

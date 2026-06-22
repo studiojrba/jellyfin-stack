@@ -1,0 +1,13 @@
+[Unit]
+Description=TorBox stack auto-heal (repairs Docker Desktop stale bind mounts after boot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=jrbaprz
+WorkingDirectory=/home/jrbaprz/torbox-stack
+ExecStart=/usr/bin/env bash /home/jrbaprz/torbox-stack/rebuild/autoheal.sh
+
+[Install]
+WantedBy=multi-user.target

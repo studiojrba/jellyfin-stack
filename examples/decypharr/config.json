@@ -1,0 +1,119 @@
+{
+  "bind_address": "0.0.0.0",
+  "url_base": "/",
+  "port": "8282",
+  "log_level": "info",
+  "debrids": [
+    {
+      "provider": "torbox",
+      "name": "torbox",
+      "api_key": "YOUR_TORBOX_API_KEY",
+      "download_api_keys": [
+        "YOUR_TORBOX_API_KEY"
+      ],
+      "rate_limit": "200/hour",
+      "download_rate_limit": "90/minute",
+      "minimum_free_slot": 1,
+      "torrents_refresh_interval": "1h",
+      "download_links_refresh_interval": "24h",
+      "workers": 300,
+      "auto_expire_links_after": "3d"
+    }
+  ],
+  "arrs": [
+    {
+      "name": "sonarr",
+      "host": "http://sonarr:8989",
+      "token": "YOUR_SONARR_API_KEY",
+      "download_uncached": false,
+      "source": "auto"
+    },
+    {
+      "name": "radarr",
+      "host": "http://radarr:7878",
+      "token": "YOUR_RADARR_API_KEY",
+      "download_uncached": false,
+      "source": "auto"
+    }
+  ],
+  "usenet": {
+    "providers": [
+      {
+        "host": "news.example-primary.com",
+        "port": 563,
+        "username": "YOUR_PRIMARY_USENET_USER",
+        "password": "YOUR_PRIMARY_USENET_PASS",
+        "max_connections": 50,
+        "ssl": true,
+        "priority": 1
+      },
+      {
+        "host": "news.example-backup.com",
+        "port": 80,
+        "username": "YOUR_BACKUP_USENET_USER",
+        "password": "YOUR_BACKUP_USENET_PASS",
+        "max_connections": 50,
+        "ssl": true,
+        "priority": 2
+      }
+    ],
+    "max_connections": 15,
+    "read_ahead": "16MB",
+    "processing_timeout": "90s",
+    "availability_sample_percent": 10,
+    "max_concurrent_nzb": 2,
+    "disk_buffer_path": "/app/usenet/streams"
+  },
+  "mount": {
+    "type": "rclone",
+    "mount_path": "/mnt/remote",
+    "rclone": {
+      "enabled": true,
+      "port": "5572",
+      "cache_dir": "/app/cache",
+      "vfs_cache_mode": "full",
+      "vfs_cache_max_age": "12h",
+      "vfs_cache_max_size": "150G",
+      "vfs_cache_poll_interval": "1m",
+      "vfs_read_chunk_size": "32M",
+      "vfs_read_chunk_size_limit": "off",
+      "buffer_size": "64M",
+      "async_read": true,
+      "transfers": 4,
+      "attr_timeout": "1s",
+      "dir_cache_time": "5m",
+      "log_level": "INFO"
+    },
+    "dfs": {
+      "cache_expiry": "24h",
+      "cache_dir": "/tmp/decypharr-cache",
+      "disk_cache_size": "30GB",
+      "cache_cleanup_interval": "1h",
+      "chunk_size": "16MB",
+      "read_ahead_size": "32MB",
+      "daemon_timeout": "30m",
+      "uid": 1000,
+      "gid": 1000
+    },
+    "external_rclone": {}
+  },
+  "remove_stalled_after": "10m",
+  "notifications": {},
+  "download_folder": "/data/downloads",
+  "refresh_interval": "30s",
+  "max_downloads": 10,
+  "categories": [
+    "sonarr",
+    "radarr"
+  ],
+  "folder_naming": "original_no_ext",
+  "default_download_action": "symlink",
+  "retries": 3,
+  "repair": {
+    "source": "arr",
+    "workers": 5,
+    "nntp_connection_percent": 20,
+    "strategy": "per_entry",
+    "recheck_interval": "168h"
+  }
+}

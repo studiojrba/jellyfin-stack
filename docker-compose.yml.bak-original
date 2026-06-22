@@ -1,0 +1,93 @@
+services:
+  # --- THE DEBRID INTERMEDIARY (MOUNT ENGINE) ---
+  decypharr:
+    image: ghcr.io/sirrobot01/decypharr:latest
+    container_name: decypharr
+    ports:
+      - "8282:8282"
+    volumes:
+      - ./data:/mnt:rshared
+      - ./config/decypharr:/app
+    restart: unless-stopped
+    devices:
+      - /dev/fuse:/dev/fuse:rwm
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+
+  # --- THE DEBRID & USENET DOWNLOAD PROXY ---
+  rdtclient:
+    image: rogerfar/rdtclient:latest
+    container_name: rdtclient
+    ports:
+      - "6500:6500"
+    volumes:
+      - ~/torbox-stack/config/rdtclient:/data/db
+      - ~/torbox-stack/data:/data
+    environment:
+      - PUID=1000
+      - PGID=1000
+    restart: unless-stopped
+
+  # --- THE MEDIA SERVER ---
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    container_name: jellyfin
+    ports:
+      - "8096:8096"
+    volumes:
+      - ~/torbox-stack/config/jellyfin:/config
+      - ~/torbox-stack/data/media:/data/media:ro
+    restart: unless-stopped
+
+  # --- THE REQUEST PORTAL ---
+  jellyseerr:
+    image: fallenbagel/jellyseerr:latest
+    container_name: jellyseerr
+    ports:
+      - "5055:5055"
+    volumes:
+      - ~/torbox-stack/config/jellyseerr:/app/config
+    restart: unless-stopped
+
+  # --- MOVIE AUTOMATION ENGINE ---
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    ports:
+      - "7878:7878"
+    volumes:
+      - ~/torbox-stack/data:/data
+      - ~/torbox-stack/config/radarr:/config
+    environment:
+      - PUID=1000
+      - PGID=1000
+    restart: unless-stopped
+
+  # --- TV & ANIME AUTOMATION ENGINE ---
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    ports:
+      - "8989:8989"
+    volumes:
+      - ~/torbox-stack/config/sonarr:/config
+      - ~/torbox-stack/data:/data
+    environment:
+      - PUID=1000
+      - PGID=1000
+    restart: unless-stopped
+
+  # --- INDEXER HUB ---
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    ports:
+      - "9696:9696"
+    volumes:
+      - ~/torbox-stack/config/prowlarr:/config
+    environment:
+      - PUID=1000
+      - PGID=1000
+    restart: unless-stopped

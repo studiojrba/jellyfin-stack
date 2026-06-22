@@ -1,0 +1,20 @@
+# ---- secrets ----
+.env
+
+# ---- per-machine runtime state / app databases (contain secrets, large) ----
+# Keep the architecture, not the live state. Sanitized templates live in examples/.
+config/
+
+# ---- media library, debrid mount, downloads (huge, account/machine-specific) ----
+data/
+mount/
+
+# ---- logs / scratch ----
+*.log
+rebuild/autoheal.log
+onepace/warm.log
+
+# ---- OS / editor noise ----
+Thumbs.db
+desktop.ini
+.DS_Store
