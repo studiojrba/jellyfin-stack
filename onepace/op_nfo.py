@@ -49,6 +49,9 @@ def crc_of(name):
     m = re.search(r"\[([0-9A-Fa-f]{8})\]\.[A-Za-z0-9]+$", name)
     return m.group(1).upper() if m else None
 
+def norm_key(s):
+    return re.sub(r"[^a-z0-9]+", "", (s or "").lower())
+
 def download(url, dest):
     if os.path.exists(dest):
         return True
@@ -69,6 +72,14 @@ def main():
     tv = meta["tvshow"]
     arcs = {int(a["part"]): a for a in meta["arcs"]}
     eps = {k.upper(): v for k, v in meta["episodes"].items()}
+    arc_by_name = {norm_key(a.get("title")): int(a["part"]) for a in meta["arcs"]}
+    eps_by_arc_episode = {}
+    eps_by_chapters = {}
+    for e in eps.values():
+        arc_no = int(e["arc"])
+        ep_no = int(e["episode"])
+        eps_by_arc_episode.setdefault((arc_no, ep_no), []).append(e)
+        eps_by_chapters.setdefault((arc_no, str(e.get("chapters") or "")), []).append(e)
 
     if not os.path.isdir(LIB):
         print(f"ERROR: library not found: {LIB}", file=sys.stderr)
@@ -105,10 +116,57 @@ def main():
     print("series poster:", "ok" if got else "MISSING")
 
     def clean_name(d):
-        n = re.sub(r"^\[One Pace\]\s*", "", d)
-        n = re.sub(r"\[[^\]]*\]", "", n)            # drop [chapters], [720p], etc.
+        n = re.sub(r"\.[A-Za-z0-9]+$", "", d)
+        n = re.sub(r"^\[One Pace\]\s*(?:\[[^\]]*\])?\s*", "", n)
+        n = re.sub(r"\[[^\]]*\]", "", n)            # drop [chapters], [720p], [CRC], etc.
         n = re.sub(r"\s+", " ", n).strip()
         return n or d
+
+    def parse_release_name(name):
+        stem = os.path.splitext(name)[0]
+        m = re.match(r"^\[One Pace\]\s*(?:\[(?P<chapters>[^\]]*)\])?\s*(?P<title>.*)$", stem)
+        title = m.group("title") if m else stem
+        chapters = m.group("chapters") if m else None
+        title = re.sub(r"\[[^\]]*\]", "", title)
+        title = re.sub(r"\s+", " ", title).strip()
+        match_title = re.sub(r"\s+(Extended|Alternate.*|v\d+)$", "", title, flags=re.I).strip()
+        ep_match = re.match(r"^(?P<arc>.+?)\s+(?P<episode>\d{1,3})$", match_title)
+        generic = re.match(r"^(?:chapter|chapters?)\b", match_title, flags=re.I)
+        return {
+            "title": title,
+            "arc_name": ep_match.group("arc").strip() if ep_match and not generic else None,
+            "episode": int(ep_match.group("episode")) if ep_match and not generic else None,
+            "chapters": "-".join(re.findall(r"\d+", chapters or "")),
+            "generic": bool(generic),
+        }
+
+    def pick_episode(candidates, chapters):
+        if not candidates:
+            return None
+        if chapters:
+            for e in candidates:
+                if str(e.get("chapters") or "") == chapters:
+                    return e
+        return sorted(candidates, key=lambda e: str(e.get("released") or ""))[-1]
+
+    def lookup_episode(info, folder_arc):
+        arc_no = arc_by_name.get(norm_key(info.get("arc_name"))) or folder_arc
+        if not arc_no:
+            return None
+        if info.get("episode"):
+            found = pick_episode(eps_by_arc_episode.get((arc_no, info["episode"])), info.get("chapters"))
+            if found:
+                return found
+        if info.get("chapters"):
+            return pick_episode(eps_by_chapters.get((arc_no, info["chapters"])), info.get("chapters"))
+        return None
+
+    def fallback_episode_title(info, arc_title, seq):
+        title = info.get("title") or ""
+        if title and not info.get("generic") and not title.startswith("[One Pace"):
+            return title
+        prefix = arc_title or "One Pace"
+        return f"{prefix} {seq:02d}"
 
     import shutil
 
@@ -141,14 +199,19 @@ def main():
         if not files:
             continue
         votes = {}
+        folder_info = parse_release_name(d)
+        folder_arc = arc_by_name.get(norm_key(folder_info.get("arc_name") or folder_info.get("title")))
         file_meta = []
         for fn in files:
             crc = crc_of(fn)
             e = eps.get(crc) if crc else None
-            file_meta.append((fn, e))
+            info = parse_release_name(fn)
+            if not e:
+                e = lookup_episode(info, folder_arc)
+            file_meta.append((fn, e, info))
             if e:
                 votes[int(e["arc"])] = votes.get(int(e["arc"]), 0) + 1
-        meta_arc = max(votes, key=votes.get) if votes else None
+        meta_arc = max(votes, key=votes.get) if votes else folder_arc
         if d == "Specials" or meta_arc in (None, 0):   # extras / unmatched -> single Season 0
             season_no = 0; meta_arc = 0
             target = "Specials"
@@ -189,7 +252,7 @@ def main():
                         pass
 
         seq = 0
-        for fn, e in file_meta:
+        for fn, e, info in file_meta:
             seq += 1
             stem = os.path.splitext(fn)[0]
             if e:
@@ -198,7 +261,7 @@ def main():
                 ep_plot = e.get("description"); aired = e.get("released")
                 ep_written += 1
             else:
-                ep_title = clean_name(stem); ep_no = seq
+                ep_title = fallback_episode_title(info, title, seq); ep_no = seq
                 ep_plot = None; aired = None
                 unmatched += 1
             with open(os.path.join(folder, stem + ".nfo"), "w", encoding="utf-8") as f:
