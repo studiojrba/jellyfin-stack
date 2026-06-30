@@ -57,6 +57,31 @@ non-obvious things that differ in the Cursor Cloud Linux VM.
   Radarr/Sonarr `api_key`s in `config/recyclarr/recyclarr.yml` are replaced with the real
   auto-generated keys.
 
+### One Pace metadata in Jellyfin (common "it's broken" report)
+
+If One Pace episodes show the raw filename (e.g. `[One Pace…`) and/or no episode
+numbers in Jellyfin, the data pipeline is almost certainly fine — it's a Jellyfin
+metadata-cache problem. Key facts learned from debugging:
+- `op_nfo.py` generates per-episode NFOs (`<videostem>.nfo`, CRC-keyed) + season/series
+  NFOs and posters. It does **not** generate per-episode thumbnails, so every episode in
+  an arc correctly falls back to the arc/season poster — identical episode images are
+  expected, not a bug.
+- Jellyfin **cannot parse One Pace's bracketed filenames into episodes without the NFOs**
+  (verified: removing an episode's NFO makes Jellyfin drop the episode entirely). So
+  correct One Pace display depends entirely on `op_nfo.py` having run successfully — which
+  requires the FUSE mount to be visible to `onepace-maintenance` (see the mount-ordering
+  caveat above). A run that logs `library not found` / `op_nfo.py failed` means no episode
+  NFOs were written.
+- The NFOs use `<lockdata>true</lockdata>`. If Jellyfin first scanned the files before the
+  NFOs existed, those items are cached/stuck and an incremental "Scan for new and updated
+  files" (and even a `replaceAllMetadata` refresh) will **not** pick up the NFOs. The
+  reliable fix is a fresh scan: remove + re-add the library (or delete the One Pace series
+  and rescan). A clean scan with all NFOs present resolves all episodes from the NFOs.
+- Jellyfin can't run via Compose in the cloud VM (no GPU). To reproduce/inspect Jellyfin
+  behavior, run a throwaway CPU-only container and drive it via the REST API, e.g.
+  `docker run -d --name jellyfin-test -p 8096:8096 -v $PWD/config/jellyfin-test:/config -v $PWD/data:/data -v $PWD/mount:/mnt/remote:rslave jellyfin/jellyfin:latest`
+  (start it after decypharr's mount is up).
+
 ### Verifying / interacting
 
 - The *arr apps auto-generate an API key in `config/<app>/config.xml` (`<ApiKey>`). Use it
