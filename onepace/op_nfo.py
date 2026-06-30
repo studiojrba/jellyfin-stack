@@ -131,7 +131,7 @@ def main():
         title = re.sub(r"\s+", " ", title).strip()
         match_title = re.sub(r"\s+(Extended|Alternate.*|v\d+)$", "", title, flags=re.I).strip()
         ep_match = re.match(r"^(?P<arc>.+?)\s+(?P<episode>\d{1,3})$", match_title)
-        generic = re.match(r"^(?:chapter|chapters?)\s*\d", match_title, flags=re.I)
+        generic = re.match(r"^(?:chapter|chapters?)\b", match_title, flags=re.I)
         return {
             "title": title,
             "arc_name": ep_match.group("arc").strip() if ep_match and not generic else None,
