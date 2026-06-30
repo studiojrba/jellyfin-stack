@@ -45,6 +45,14 @@ non-obvious things that differ in the Cursor Cloud Linux VM.
   `config/decypharr/config.json` + `.env`.
 - **onepace-maintenance** loops a script that hits the TorBox API; it stays up but does
   nothing useful without a real key.
+- **Mount ordering matters.** The rslave consumers (`radarr`/`sonarr`/`jellyfin`/
+  `onepace-maintenance`) only see decypharr's content if they start *after* decypharr has
+  established its rclone FUSE mount. If you restart/recreate `decypharr`, restart those
+  consumers afterward so the new mount propagates. Also note `docker compose restart
+  decypharr` can fail with a bind-mount error after an rclone unmount left
+  `/workspace/mount` as a dead FUSE endpoint (`transport endpoint is not connected`); fix
+  by unmounting it (`sudo umount -lf /workspace/mount`), then redo step 4's
+  bind+`make-rshared`, then `docker compose up -d decypharr`.
 - **recyclarr** runs on `CRON_SCHEDULE=@daily` and only syncs once the placeholder
   Radarr/Sonarr `api_key`s in `config/recyclarr/recyclarr.yml` are replaced with the real
   auto-generated keys.
