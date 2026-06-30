@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import json, os, urllib.request
-KEY = os.environ.get("TORBOX_KEY", "e749fcd2-f95e-4704-a85c-fa2f43d82afd")
+KEY = os.environ.get("TORBOX_KEY", "")
 B   = "https://api.torbox.app/v1/api"
 UA  = "Mozilla/5.0 (onepace-keeper)"
 def api_get(path):

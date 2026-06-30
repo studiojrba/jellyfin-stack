@@ -11,11 +11,11 @@ echo "==================== autoheal $(date) ===================="
 # Derive the TorBox key from the live (gitignored) config so this script holds no secret.
 TORBOX_KEY=$(grep -o '"api_key": *"[^"]*"' config/decypharr/config.json 2>/dev/null | head -1 | sed 's/.*"api_key": *"//; s/"$//')
 
-# 1) Wait for Docker Desktop integration to be ready (up to ~5 min).
+# 1) Wait for Docker Desktop integration to be ready (up to ~15 min after a cold boot).
 ok=0
-for i in $(seq 1 60); do
+for i in $(seq 1 90); do
   if docker info >/dev/null 2>&1; then ok=1; break; fi
-  sleep 5
+  sleep 10
 done
 [ "$ok" = 1 ] || { echo "docker never came up; exiting (will retry next boot)"; exit 0; }
 

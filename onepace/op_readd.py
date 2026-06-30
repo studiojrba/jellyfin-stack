@@ -3,7 +3,7 @@
 Cached torrents re-add instantly. Safe to run repeatedly (idempotent)."""
 import json, os, time, urllib.request, urllib.parse, mimetypes, sys
 
-KEY = os.environ.get("TORBOX_KEY", "e749fcd2-f95e-4704-a85c-fa2f43d82afd")
+KEY = os.environ.get("TORBOX_KEY", "")
 MAN = os.environ.get("OP_MANIFEST", "/home/jrbaprz/torbox-stack/onepace_final.json")
 B   = "https://api.torbox.app/v1/api"
 

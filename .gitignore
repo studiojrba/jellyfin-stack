@@ -14,6 +14,12 @@ mount/
 rebuild/autoheal.log
 onepace/warm.log
 
+# ---- one-off incident/ops scripts at repo root (machine-specific, contain keys) ----
+/op_*.py
+/op_*.sh
+/onepace_final.json
+*.bak-original
+
 # ---- OS / editor noise ----
 Thumbs.db
 desktop.ini

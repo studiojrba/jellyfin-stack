@@ -2,7 +2,7 @@
 """Clean measurement of TorBox requestdl limit with NO other client running.
 Run after `docker stop decypharr`."""
 import json, os, urllib.request, urllib.error, time
-KEY=os.environ.get("TORBOX_KEY","e749fcd2-f95e-4704-a85c-fa2f43d82afd")
+KEY=os.environ.get("TORBOX_KEY","")
 B="https://api.torbox.app/v1/api"; UA="Mozilla/5.0 (onepace-keeper)"
 def raw(path):
     req=urllib.request.Request(B+path, headers={"Authorization":"Bearer "+KEY,"User-Agent":UA})
