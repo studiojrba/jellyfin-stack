@@ -30,7 +30,7 @@ jf_rescan() {
   [ -z "$key" ] && { echo "  rescan skipped (no JELLYFIN_API_KEY in .env)"; return; }
   local code
   code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
-    "http://localhost:8096/Library/Refresh" -H "X-Emby-Token: $key")
+    "http://localhost:8096/Library/Refresh" -H "Authorization: MediaBrowser Token=\"$key\"")
   echo "  jellyfin rescan -> HTTP $code"
 }
 

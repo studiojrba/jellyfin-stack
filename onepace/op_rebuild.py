@@ -15,11 +15,12 @@ def _env(name):
 KEY=_env("JELLYFIN_API_KEY");BASE="http://localhost:8096"
 if not KEY:
     raise SystemExit("JELLYFIN_API_KEY not set (env or .env)")
+AUTH={"Authorization":'MediaBrowser Token="%s"'%KEY}
 def get(p):
-    r=urllib.request.Request(BASE+p,headers={"X-Emby-Token":KEY})
+    r=urllib.request.Request(BASE+p,headers=AUTH)
     with urllib.request.urlopen(r,timeout=90) as x:return json.load(x)
 def post(p):
-    r=urllib.request.Request(BASE+p,data=b"",headers={"X-Emby-Token":KEY},method="POST")
+    r=urllib.request.Request(BASE+p,data=b"",headers=AUTH,method="POST")
     with urllib.request.urlopen(r,timeout=90) as x:return x.status
 
 def _find_series_id():
