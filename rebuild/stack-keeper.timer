@@ -1,0 +1,12 @@
+[Unit]
+Description=Run jellyfin-stack keeper at boot and every 15 minutes
+
+[Timer]
+# Heal shortly after boot (once the mount should be up), then poll steadily.
+OnBootSec=3min
+OnUnitActiveSec=15min
+AccuracySec=30s
+Persistent=true
+
+[Install]
+WantedBy=timers.target

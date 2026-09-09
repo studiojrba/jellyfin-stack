@@ -1,0 +1,34 @@
+# ---- secrets ----
+.env
+
+# ---- per-machine runtime state / app databases (contain secrets, large) ----
+# Keep the architecture, not the live state. Sanitized templates live in examples/.
+config/
+
+# ---- media library, debrid mount, downloads (huge, account/machine-specific) ----
+data/
+mount/
+
+# ---- logs / scratch ----
+*.log
+rebuild/autoheal.log
+onepace/warm.log
+
+# ---- one-off incident/ops scripts at repo root (machine-specific, contain keys) ----
+/op_*.py
+/op_*.sh
+/onepace_final.json
+*.bak-original
+
+# ---- python bytecode cache ----
+__pycache__/
+*.pyc
+
+# ---- OS / editor noise ----
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ---- stack keeper runtime state ----
+rebuild/.queue_state.json
+rebuild/.dead_release_state.json
